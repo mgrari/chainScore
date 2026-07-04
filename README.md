@@ -16,6 +16,36 @@ The result is stored as a block on a shared blockchain. Every connected player h
 4. Every player appends the entry to their local chain
 5. ELO scores are updated based on the match result and the relative strength of the opponent
 
+## How the cryptography works
+
+Signing a match result is a two-step process.
+
+**Step 1 — Hashing with SHA256**
+
+The match data is first compressed into a fixed-size 256-bit fingerprint using SHA256. This fingerprint is unique to that exact data — changing even one character produces a completely different hash. This step ensures RSA always operates on data of a predictable size, and closes certain cryptographic attack vectors that arise from signing raw data directly.
+
+**Step 2 — Signing with RSA**
+
+RSA then signs the hash using the signer's private key (2048-bit), producing a signature. This signature is mathematically tied to both the hash and the private key. Since the private key never leaves the owner's device, no one else can produce a valid signature on their behalf.
+
+```
+match data  →  SHA256  →  hash  →  RSA sign (private key)  →  signature
+```
+
+**Verification**
+
+To verify an entry, any player can run the same process on the original data and check it against the signature using the signer's public key. If the data was tampered with in any way, the hash will not match and the signature will be rejected.
+
+```
+match data  →  SHA256  →  hash  ─┐
+                                  ├─ compare  →  valid or invalid
+signature   →  RSA verify ────────┘
+```
+
+An entry is only accepted into the blockchain if all three signatures — from Player 1, Player 2, and the Referee — pass this verification.
+
+---
+
 ## Architecture
 
 ```
